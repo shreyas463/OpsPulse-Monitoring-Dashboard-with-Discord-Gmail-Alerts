@@ -2,6 +2,11 @@
 
 A production-style monitoring demo showcasing real-time observability with **Prometheus**, **Grafana**, and actionable alerts via **Discord** and **Gmail**.
 
+`In Short'
+
+A health monitor + alarm system for your web app. Watches your app’s basics—speed, errors, uptime, CPU, memory. Shows graphs on a dashboard. If something goes wrong (slow, lots of errors, app down), it pings you on Discord and emails you (Gmail) right away with links to investigate.
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
