@@ -1,0 +1,87 @@
+groups:
+  - name: ops-pulse
+    rules:
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{code=~"5.."}[5m])) by (job)
+          /
+          sum(rate(http_requests_total[5m])) by (job)
+          > 0.05
+        for: 5m
+        labels:
+          severity: page
+          team: ops-pulse
+        annotations:
+          summary: "High error rate detected for {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }} over the last 5 minutes"
+          grafana_url: "http://localhost:3000/d/ops-pulse/service-overview?orgId=1&refresh=30s"
+
+      # High Latency P95 Alert
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job))
+          > 0.5
+        for: 5m
+        labels:
+          severity: page
+          team: ops-pulse
+        annotations:
+          summary: "High latency detected for {{ $labels.job }}"
+          description: "P95 latency is {{ $value }}s for {{ $labels.job }} over the last 5 minutes"
+          grafana_url: "http://localhost:3000/d/ops-pulse/service-overview?orgId=1&refresh=30s"
+
+      # Instance Down Alert
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: page
+          team: ops-pulse
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "Instance {{ $labels.instance }} has been down for more than 2 minutes"
+          grafana_url: "http://localhost:3000/d/ops-pulse/service-overview?orgId=1&refresh=30s"
+
+      # High CPU Usage Alert
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: ops-pulse
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+          grafana_url: "http://localhost:3000/d/ops-pulse/service-overview?orgId=1&refresh=30s"
+
+      # High Memory Usage Alert
+      - alert: HighMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          /
+          node_memory_MemTotal_bytes
+          * 100
+          > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: ops-pulse
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+          grafana_url: "http://localhost:3000/d/ops-pulse/service-overview?orgId=1&refresh=30s"
+
+      # Chaos Mode Active Alert
+      - alert: ChaosModeActive
+        expr: chaos_mode_active > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: ops-pulse
+        annotations:
+          summary: "Chaos mode is active on {{ $labels.instance }}"
+          description: "Chaos mode is enabled (value: {{ $value }}) on {{ $labels.instance }}"
+          grafana_url: "http://localhost:3000/d/ops-pulse/service-overview?orgId=1&refresh=30s" 

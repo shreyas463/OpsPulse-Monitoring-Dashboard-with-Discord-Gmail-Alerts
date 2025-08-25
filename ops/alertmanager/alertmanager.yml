@@ -1,0 +1,53 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: '{{ if .Env.DISCORD_SLACK_WEBHOOK_URL }}{{ .Env.DISCORD_SLACK_WEBHOOK_URL }}{{ end }}'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 6h
+  receiver: 'discord'
+  routes:
+    - match:
+        severity: warning
+      receiver: 'gmail'
+      continue: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'page'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']
+
+receivers:
+  - name: 'discord'
+    slack_configs:
+      - channel: '#alerts'
+        title: '{{ template "slack.ops-pulse.title" . }}'
+        text: '{{ template "slack.ops-pulse.text" . }}'
+        actions:
+          - type: button
+            text: 'View in Grafana'
+            url: '{{ template "slack.ops-pulse.grafanaURL" . }}'
+          - type: button
+            text: 'View in Alertmanager'
+            url: '{{ template "slack.ops-pulse.alertmanagerURL" . }}'
+        send_resolved: true
+
+  - name: 'gmail'
+    email_configs:
+      - to: '{{ if .Env.ALERT_EMAILS }}{{ .Env.ALERT_EMAILS }}{{ end }}'
+        from: '{{ if .Env.GMAIL_FROM }}{{ .Env.GMAIL_FROM }}{{ end }}'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: '{{ if .Env.GMAIL_FROM }}{{ .Env.GMAIL_FROM }}{{ end }}'
+        auth_identity: '{{ if .Env.GMAIL_FROM }}{{ .Env.GMAIL_FROM }}{{ end }}'
+        auth_password: '{{ if .Env.GMAIL_APP_PASSWORD }}{{ .Env.GMAIL_APP_PASSWORD }}{{ end }}'
+        headers:
+          subject: '{{ template "email.ops-pulse.subject" . }}'
+        html: '{{ template "email.ops-pulse.html" . }}'
+        send_resolved: true
+
+templates:
+  - '/etc/alertmanager/template/*.tmpl' 
